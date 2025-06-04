@@ -3,6 +3,7 @@ import os
 import hmac
 import hashlib
 import datetime
+from dateutil import parser
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
 
@@ -26,7 +27,8 @@ def verify_signature(secret_env_name="GITHUB_SECRET"):
         abort(403, 'Invalid signature')
 
 def format_utc_timestamp(ts_str):
-    dt = datetime.datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ")
+    dt = parser.isoparse(ts_str)
+    dt = dt.astimezone(datetime.timezone.utc)
     return dt.strftime("%-d %B %Y - %-I:%M %p UTC")
 
 @webhook.route('/receiver', methods=["POST"])
