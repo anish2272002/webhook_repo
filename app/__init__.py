@@ -1,15 +1,16 @@
+import os
+import urllib.parse
 from flask import Flask
 from .extensions import mongo
 from app.webhook.routes import webhook
-import urllib.parse
-import os
-
-username = urllib.parse.quote_plus(os.environ.get("MONGO_USERNAME"))
-password = urllib.parse.quote_plus(os.environ.get("MONGO_PASSWORD"))
 
 # Creating our flask app
 def create_app():
     app = Flask(__name__)
+
+    # URL encode MongoDB credentials
+    username = urllib.parse.quote_plus(os.getenv("MONGO_USERNAME", "your_default_user"))
+    password = urllib.parse.quote_plus(os.getenv("MONGO_PASSWORD", "your_default_pass"))
 
     # Configure MongoDB Atlas URI
     app.config["MONGO_URI"] = (

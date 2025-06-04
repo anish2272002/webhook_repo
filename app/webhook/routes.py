@@ -27,14 +27,8 @@ def verify_signature(secret_env_name="GITHUB_SECRET"):
     if not hmac.compare_digest(expected_signature, signature):
         abort(403, 'Invalid signature')
 
-def format_utc_timestamp(ts_str):
-    dt = parser.isoparse(ts_str)
-    dt = dt.astimezone(dtime.timezone.utc)
-    return dt.strftime("%-d %B %Y - %-I:%M %p UTC")
-
 @webhook.route('/receiver', methods=["POST"])
 def receiver():
-    # Verify signature
     verify_signature()
 
     event_type = request.headers.get('X-GitHub-Event', 'ping')
@@ -55,10 +49,11 @@ def receiver():
         record["to_branch"] = payload.get("ref", "").split("/")[-1]
         record["request_id"] = payload.get("head_commit", {}).get("id")
         record["timestamp"] = payload.get("head_commit", {}).get("timestamp")
-    
+
     elif event_type == "pull_request":
         action = payload.get("action")
         pr = payload.get("pull_request", {})
+
         record["author"] = pr.get("user", {}).get("login", "Unknown")
         record["from_branch"] = pr.get("head", {}).get("ref")
         record["to_branch"] = pr.get("base", {}).get("ref")
@@ -70,14 +65,15 @@ def receiver():
         elif action == "closed" and pr.get("merged"):
             record["action"] = "MERGE"
 
+    # Normalize timestamp to UTC ISO format
     if record["timestamp"]:
-        dt = parser.isoparse(record["timestamp"])
-        record["timestamp"] = dt.astimezone().isoformat()
-    
-    # Remove fields with None values
+        dt = parser.isoparse(record["timestamp"]).astimezone(dtime.timezone.utc)
+        record["timestamp"] = dt.isoformat()
+
+    # Drop None values to avoid invalid MongoDB fields
     clean_record = {k: v for k, v in record.items() if v is not None}
 
-    # Insert into MongoDB
+    # Insert into MongoDB Atlas
     mongo.db.github_events.insert_one(clean_record)
 
     return jsonify({'status': 'received', 'event': event_type}), 200
