@@ -31,6 +31,13 @@ def verify_signature(secret_env_name="GITHUB_SECRET"):
 def receiver():
     verify_signature()
 
+    print("Mongo instance:", mongo)
+    print("Mongo DB attribute:", getattr(mongo, "db", None))
+
+
+    if mongo.db is None:
+        return jsonify({"error": "Database not initialized"}), 500
+
     event_type = request.headers.get('X-GitHub-Event', 'ping')
     payload = request.json
 
