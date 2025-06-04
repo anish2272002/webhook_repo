@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
+from app.extensions import mongo
 import os
 import hmac
 import hashlib
@@ -39,29 +40,45 @@ def receiver():
     event_type = request.headers.get('X-GitHub-Event', 'ping')
     payload = request.json
 
+    record = {
+        "request_id": None,
+        "author": None,
+        "action": None,
+        "from_branch": None,
+        "to_branch": None,
+        "timestamp": None
+    }
+
     if event_type == "push":
-        author = payload.get("pusher", {}).get("name", "Unknown")
-        branch = payload.get("ref", "").split("/")[-1]
-        timestamp = payload.get("head_commit", {}).get("timestamp")
-        if timestamp:
-            timestamp = format_utc_timestamp(timestamp)
-        print(f'"{author}" pushed to "{branch}" on {timestamp}')
+        record["author"] = payload.get("pusher", {}).get("name", "Unknown")
+        record["action"] = "PUSH"
+        record["to_branch"] = payload.get("ref", "").split("/")[-1]
+        record["request_id"] = payload.get("head_commit", {}).get("id")
+        record["timestamp"] = payload.get("head_commit", {}).get("timestamp")
     
     elif event_type == "pull_request":
         action = payload.get("action")
         pr = payload.get("pull_request", {})
-        author = pr.get("user", {}).get("login", "Unknown")
-        from_branch = pr.get("head", {}).get("ref")
-        to_branch = pr.get("base", {}).get("ref")
-        timestamp = pr.get("created_at") if action == "opened" else pr.get("merged_at")
-
-        if timestamp:
-            timestamp = format_utc_timestamp(timestamp)
+        record["author"] = pr.get("user", {}).get("login", "Unknown")
+        record["from_branch"] = pr.get("head", {}).get("ref")
+        record["to_branch"] = pr.get("base", {}).get("ref")
+        record["request_id"] = str(pr.get("id"))
+        record["timestamp"] = pr.get("created_at") if action == "opened" else pr.get("merged_at")
 
         if action == "opened":
-            print(f'"{author}" submitted a pull request from "{from_branch}" to "{to_branch}" on {timestamp}')
+            record["action"] = "PULL_REQUEST"
         elif action == "closed" and pr.get("merged"):
-            print(f'"{author}" merged branch "{from_branch}" to "{to_branch}" on {timestamp}')
+            record["action"] = "MERGE"
+
+    if record["timestamp"]:
+        dt = parser.isoparse(record["timestamp"])
+        record["timestamp"] = dt.astimezone().isoformat()
+    
+    # Remove fields with None values
+    clean_record = {k: v for k, v in record.items() if v is not None}
+
+    # Insert into MongoDB
+    mongo.db.github_events.insert_one(clean_record)
 
     return jsonify({'status': 'received', 'event': event_type}), 200
 
