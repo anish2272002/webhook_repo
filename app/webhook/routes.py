@@ -1,11 +1,39 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, abort
+import os
+import hmac
+import hashlib
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
 
+GITHUB_SECRET = os.environ.get("GITHUB_SECRET", "my-secret-token")
+
+def verify_signature(secret_env_name="GITHUB_SECRET"):
+    secret = os.environ.get(secret_env_name)
+    if not secret:
+        abort(500, 'Webhook secret not configured')
+
+    signature_header = request.headers.get('X-Hub-Signature-256')
+    if not signature_header:
+        abort(400, 'Missing signature header')
+
+    sha_name, signature = signature_header.split('=')
+    if sha_name != 'sha256':
+        abort(400, 'Only sha256 is supported')
+
+    mac = hmac.new(secret.encode(), msg=request.data, digestmod=hashlib.sha256)
+    expected_signature = mac.hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        abort(403, 'Invalid signature')
+
 @webhook.route('/receiver', methods=["POST"])
 def receiver():
-    event_type = request.headers.get('X-GitHub-Event', 'unknown')
+    # Verify signature
+    verify_signature()
+
+    event_type = request.headers.get('X-GitHub-Event', 'ping')
     payload = request.json
+
     print(f"Received event: {event_type}")
     print(payload)
 
