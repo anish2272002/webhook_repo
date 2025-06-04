@@ -5,10 +5,8 @@ import hashlib
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
 
-GITHUB_SECRET = os.environ.get("GITHUB_SECRET", "my-secret-token")
-
 def verify_signature(secret_env_name="GITHUB_SECRET"):
-    secret = os.environ.get(secret_env_name)
+    secret = os.environ.get(secret_env_name,"my-secret-token")
     if not secret:
         abort(500, 'Webhook secret not configured')
 
