@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, abort
 import os
 import hmac
 import hashlib
-import datetime
+import datetime as dtime
 from dateutil import parser
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
@@ -28,7 +28,7 @@ def verify_signature(secret_env_name="GITHUB_SECRET"):
 
 def format_utc_timestamp(ts_str):
     dt = parser.isoparse(ts_str)
-    dt = dt.astimezone(datetime.timezone.utc)
+    dt = dt.astimezone(dtime.timezone.utc)
     return dt.strftime("%-d %B %Y - %-I:%M %p UTC")
 
 @webhook.route('/receiver', methods=["POST"])
