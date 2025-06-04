@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, abort
 import os
 import hmac
 import hashlib
+import datetime
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
 
@@ -24,6 +25,10 @@ def verify_signature(secret_env_name="GITHUB_SECRET"):
     if not hmac.compare_digest(expected_signature, signature):
         abort(403, 'Invalid signature')
 
+def format_utc_timestamp(ts_str):
+    dt = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ")
+    return dt.strftime("%-d %B %Y - %-I:%M %p UTC")
+
 @webhook.route('/receiver', methods=["POST"])
 def receiver():
     # Verify signature
@@ -32,8 +37,29 @@ def receiver():
     event_type = request.headers.get('X-GitHub-Event', 'ping')
     payload = request.json
 
-    print(f"Received event: {event_type}")
-    print(payload)
+    if event_type == "push":
+        author = payload.get("pusher", {}).get("name", "Unknown")
+        branch = payload.get("ref", "").split("/")[-1]
+        timestamp = payload.get("head_commit", {}).get("timestamp")
+        if timestamp:
+            timestamp = format_utc_timestamp(timestamp)
+        print(f'"{author}" pushed to "{branch}" on {timestamp}')
+    
+    elif event_type == "pull_request":
+        action = payload.get("action")
+        pr = payload.get("pull_request", {})
+        author = pr.get("user", {}).get("login", "Unknown")
+        from_branch = pr.get("head", {}).get("ref")
+        to_branch = pr.get("base", {}).get("ref")
+        timestamp = pr.get("created_at") if action == "opened" else pr.get("merged_at")
+
+        if timestamp:
+            timestamp = format_utc_timestamp(timestamp)
+
+        if action == "opened":
+            print(f'"{author}" submitted a pull request from "{from_branch}" to "{to_branch}" on {timestamp}')
+        elif action == "closed" and pr.get("merged"):
+            print(f'"{author}" merged branch "{from_branch}" to "{to_branch}" on {timestamp}')
 
     return jsonify({'status': 'received', 'event': event_type}), 200
 
