@@ -3,7 +3,7 @@ FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /project
-ENV GITHUB_SECRET
+ENV GITHUB_SECRET=e7c64fc5-d12a-4ccc-ad3c-a4c809be0f09
 
 # Copy requirements and install
 COPY requirements.txt .
