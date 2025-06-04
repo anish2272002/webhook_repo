@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, abort
 import os
 import hmac
 import hashlib
-import datetime
+from datetime import datetime
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
 
