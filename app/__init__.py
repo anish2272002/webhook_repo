@@ -1,7 +1,11 @@
 from flask import Flask
 from .extensions import mongo
 from app.webhook.routes import webhook
+import urllib.parse
+import os
 
+username = urllib.parse.quote_plus(os.environ.get("MONGO_USERNAME"))
+password = urllib.parse.quote_plus(os.environ.get("MONGO_PASSWORD"))
 
 # Creating our flask app
 def create_app():
@@ -9,7 +13,7 @@ def create_app():
 
     # Configure MongoDB Atlas URI
     app.config["MONGO_URI"] = (
-        "mongodb+srv://anish2272002:Anish@2272002@cluster0.0cjmawe.mongodb.net/"
+        f"mongodb+srv://{username}:{password}@cluster0.0cjmawe.mongodb.net/"
         "?retryWrites=true&w=majority&appName=Cluster0"
     )
 
