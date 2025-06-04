@@ -41,3 +41,9 @@ def receiver():
 def home():
     print("Home GET request")
     return 'GitHub Webhook Receiver is running!', 200
+
+@webhook.route('/debug-secret')
+def debug_secret():
+    return jsonify({
+        'GITHUB_SECRET': os.environ.get('GITHUB_SECRET', 'Not set')
+    })
