@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
-from app.extensions import mongo
+from extensions import mongo
 import os
 import hmac
 import hashlib
