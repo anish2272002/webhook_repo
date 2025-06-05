@@ -55,17 +55,17 @@ def receiver():
         record["author"] = payload.get("pusher", {}).get("name", "Unknown")
         record["action"] = "PUSH"
         record["to_branch"] = payload.get("ref", "").split("/")[-1]
-        record["request_id"] = payload.get("head_commit", {}).get("id")
-        record["timestamp"] = payload.get("head_commit", {}).get("timestamp")
+        record["request_id"] = payload.get("head_commit", {}).get("id","Unknown")
+        record["timestamp"] = payload.get("head_commit", {}).get("timestamp","Unknown")
 
     elif event_type == "pull_request":
         action = payload.get("action")
         pr = payload.get("pull_request", {})
 
         record["author"] = pr.get("user", {}).get("login", "Unknown")
-        record["from_branch"] = pr.get("head", {}).get("ref")
-        record["to_branch"] = pr.get("base", {}).get("ref")
-        record["request_id"] = str(pr.get("id"))
+        record["from_branch"] = pr.get("head", {}).get("ref","Unknown")
+        record["to_branch"] = pr.get("base", {}).get("ref","Unknown")
+        record["request_id"] = str(pr.get("id","Unknown"))
         record["timestamp"] = pr.get("created_at") if action == "opened" else pr.get("merged_at")
 
         if action == "opened":
@@ -82,7 +82,7 @@ def receiver():
         record["timestamp"] = dt.isoformat()
 
     # Drop None values to avoid invalid MongoDB fields
-    clean_record = {k: v for k, v in record.items() if v is not None}
+    clean_record = {k: v for k, v in record.items() if v not in [None,"Unknown"]}
 
     # Insert into MongoDB Atlas
     mongo.db.github_events.insert_one(clean_record)
