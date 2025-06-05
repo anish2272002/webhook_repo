@@ -72,6 +72,9 @@ def receiver():
             record["action"] = "PULL_REQUEST"
         elif action == "closed" and pr.get("merged"):
             record["action"] = "MERGE"
+    
+    else:
+        return jsonify({'status': 'received', 'event': event_type}), 200
 
     # Normalize timestamp to UTC ISO format
     if record["timestamp"]:
