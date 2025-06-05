@@ -11,8 +11,9 @@ def create_app():
     # URL encode MongoDB credentials
     username = urllib.parse.quote_plus(os.getenv("MONGO_USERNAME", "your_default_user"))
     password = urllib.parse.quote_plus(os.getenv("MONGO_PASSWORD", "your_default_pass"))
+    db_name = urllib.parse.quote_plus(os.getenv("DB_NAME", "your_default_db"))
 
-    mongo_uri = f"mongodb+srv://{username}:{password}@cluster0.0cjmawe.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    mongo_uri = f"mongodb+srv://{username}:{password}@cluster0.0cjmawe.mongodb.net/{db_name}?retryWrites=true&w=majority&appName=Cluster0"
 
     # Configure MongoDB Atlas URI
     app.config["MONGO_URI"] = mongo_uri

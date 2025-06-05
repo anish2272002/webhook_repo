@@ -32,7 +32,8 @@ def receiver():
     verify_signature()
 
     print("Mongo instance:", mongo)
-    print("Mongo DB attribute:", getattr(mongo, "db", None))
+    print("mongo.cx:", mongo.cx)
+    print("mongo.db:", mongo.db)
 
 
     if mongo.db is None:
